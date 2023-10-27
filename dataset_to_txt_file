@@ -1,0 +1,50 @@
+import arcpy
+import os
+import sys
+import inspect
+import time
+from datetime import datetime, timedelta
+
+#ideas for improvement: sort first, then break as soon as it's greater than .5. Use divide and conquer
+
+'''Goes through dataset and pulls the point information. Stores in a text file for faster processing in the future.'''
+
+run_time = datetime.now()
+print(run_time)
+
+p = arcpy.mp.ArcGISProject("CURRENT")
+
+
+fields = ['FID','LATITUDE', 'LONGITUDE', 'ACQ_DATE', 'CONFIDENCE']
+fire_data = 'fire_archive_M-C61_323826'
+
+data_points = []
+
+# #iterates through dataset, and gets long, lat, date, and time per row. Stores in data_points above
+with arcpy.da.SearchCursor(fire_data, field_names=fields) as cursor:    
+    for row in cursor:
+        if row[4] >= 75:
+            data_points.append(tuple(row[:-1]))
+        
+data_points.sort(key=lambda row: (row[1]))
+print(data_points[:500])
+
+print("Got data")
+# checking for duplicates in data_points
+with open(r"D:\data_points_conf_0.txt", "w") as file:
+    i = 0
+    while i < len(data_points):
+        fid, long, lat, date = data_points[i][0], data_points[i][1], data_points[i][2], data_points[i][3]
+        print("\n", "Ref Line info: ", fid, long, lat, date)
+        to_remove = [j for j in range(i + 1, len(data_points))
+                     if data_points[j][3] == date
+                     and fid != data_points[j][0]
+                     and abs(long - data_points[j][1]) <= .75
+                     and abs(lat - data_points[j][2]) <= .5]
+        data_points = [dp for j, dp in enumerate(data_points) if j not in to_remove]
+        i += 1
+        file.write(f"{fid},{long},{lat},{date}\n")
+
+end_time = datetime.now()
+print(end_time)
+print("done")
