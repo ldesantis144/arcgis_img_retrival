@@ -1,0 +1,80 @@
+import arcpy
+import os
+import sys
+import inspect
+import time
+from datetime import datetime, timedelta
+
+run_time = datetime.now()
+print(run_time)
+
+p = arcpy.mp.ArcGISProject("CURRENT")
+layers = p.listMaps()[0].listLayers()
+
+#gets the layout we're using
+l = p.listLayouts()[0]
+
+#creates a map frame object from the elements added to the layout
+mf = l.listElements()[0]
+mt = mf.time
+print("Going through data now")
+
+data_points = []
+
+# #iterates through dataset, and gets long, lat, date, and time per row. Stores in data_points above
+
+with open("filepath", "r") as file:
+    read_file = file.readlines()
+    for line in read_file:
+        new_line = line.split(',')
+        new_line[0] = int(new_line[0][1:])
+        new_line[1] = float(new_line[1])
+        new_line[2] = float(new_line[2])
+        new_line[3] = new_line[3][19:] + '-' + new_line[4][1:] + '-' + new_line[5][1:]
+        new_line[3] = datetime.strptime(new_line[3].strip(), '%Y-%m-%d')
+        new_line = new_line[:4]
+        data_points.append(new_line)
+        
+print("list length: ", len(data_points))
+
+#sets the full time extent and the current extent as the same to start off with
+start = datetime(Enter start: year, month, day, 0, 0)
+end = datetime(Enter end: year, month, day, 0, 0)
+setattr(mt, "currentTimeEnd", end)
+setattr(mt, "currentTimeStart", start)
+
+print("New list length: ", len(data_points))
+print("got data. Starting loop")
+
+data_points = data_points[:enter_num]
+with open(r"D:\bands_test\Aqua143\metadata"+".txt", mode='w') as file:
+    for i in range(len(data_points)):
+        #changes current start date and current end date 
+        curr_start = data_points[i][3]
+        curr_end = curr_start + timedelta(1)
+        try:
+            setattr(mt, "currentTimeEnd", curr_end)
+            print(mt.currentTimeEnd)
+            setattr(mt, "currentTimeStart", curr_start)
+            print(mt.currentTimeStart)
+        except ValueError:
+            setattr(mt, "currentTimeStart", curr_start)
+            setattr(mt, "currentTimeEnd", curr_end)
+
+        #creates new bounding box by offsetting .5 degree from either direction of pixel
+        cam_ext = arcpy.Extent(data_points[i][2]+.5, data_points[i][1]+.5, data_points[i][2]-.5, data_points[i][1]-.5)
+
+        #moves view to new bounding box
+    #     mf.camera.scale(70000)
+        mf.camera.setExtent(extent=cam_ext)
+
+        print(f"Changed Extent for image{i+1}")
+        print(f"creating image{i+1} of {len(data_points)}")
+        try:
+            l.exportToTIFF(r"D:\bands_test\Aqua143\\"+f"{i}_{str(data_points[i][2])}_{data_points[i][1]}_{curr_start.date()}"+".tif", resolution=96)
+        except OSError:
+            l.exportToTIFF(r"D:\bands_test\Aqua143\\"+f"neg{str(data_points[i][2])[1:]}_neg{str(data_points[i][1])[1:]}_{curr_start}"+".tif", resolution=96)
+            
+print("done")
+end_time = datetime.now()
+print(end_time)
