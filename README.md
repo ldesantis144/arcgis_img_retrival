@@ -1,7 +1,7 @@
 # arcgis_img_retrival
 First part: 
   
-  A. Takes a curated dataset in ArcGIS, gets long, lat, date, and time from the ArcGIS dataset, and saves this information in an external file for faster processing.
+  A. Takes a dataset, gets long, lat, date, and time from the dataset, and saves this information in an external file for faster processing.
 
 Second part: 
   
